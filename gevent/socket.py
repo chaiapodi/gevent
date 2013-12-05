@@ -241,6 +241,7 @@ class socket(object):
         io = self.hub.loop.io
         self._read_event = io(fileno, 1)
         self._write_event = io(fileno, 2)
+        self._makefile_refs = 0
 
     def __repr__(self):
         return '<%s at %s %s>' % (type(self).__name__, hex(id(self)), self._formatinfo())
@@ -299,6 +300,15 @@ class socket(object):
         finally:
             if timeout is not None:
                 timeout.cancel()
+
+    def _reuse(self):
+        self._makefile_refs += 1
+
+    def _drop(self):
+        if self._makefile_refs < 1:
+            self.close()
+        else:
+            self._makefile_refs -= 1
 
     def accept(self):
         sock = self._sock
